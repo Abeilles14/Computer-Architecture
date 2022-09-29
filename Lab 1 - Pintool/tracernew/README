@@ -1,0 +1,13 @@
+Read this carefully
+1. EDIT tracer.cpp ONLY.
+2. DO NOT EDIT ANY OTHER FILES
+3. DO NOT WRITE PRINTF, COUT, etc. IN ANY FILE.
+4. IF YOU BREAK THESE RULES AND YOUR SUBMISSION DOES NOT ADHER TO THIS --> YOU WILL GET 0 MARKS.
+
+Compile this folder with the following command:
+$ bash quick_make.sh
+
+Run the 2nd sorting algorithm with the following command:
+$ ../pin-dir/pin -t obj-intel64/tracer.so -m 0 -- ../algorithms/assignment1.bin 1 <your SIS number>
+
+Check the ../output folder to see the tracenew.out file
