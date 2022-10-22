@@ -1,0 +1,200 @@
+//--- Implementing the Pseudo-Tree-Based LRU Replacement Policy ---//
+
+#include "cache.h"
+#include <math.h>
+#include <stack>
+
+#define TREE_HEIGHT log2(LLC_WAY)
+
+uint32_t layer_counter = 0;
+
+struct Node {
+    int data;   // if data = 0, pointed right, if data = 1, pointed left
+    Node* left = nullptr;
+    Node* right = nullptr;
+
+    // constructors
+    Node() {}
+    Node(int data): data(data) {}
+};
+
+Node* tree_sets[LLC_SET];
+
+// init binary tree nodes with height log2way to 0
+void initTreePLRU(Node* root, int data, uint32_t counter, uint32_t tree_height)
+{
+    if (tree_height == 0) {
+        return;
+    }
+
+    // stop when at height 3
+    if (counter >= tree_height-1) {
+        return;
+    }
+
+    Node* new_left = new Node(data);
+    Node* new_right = new Node(data);
+    
+    root->left = new_left;
+    root->right = new_right;
+    
+    ++counter;
+
+    initTreePLRU(new_left, data, counter, tree_height);
+    initTreePLRU(new_right, data, counter, tree_height);
+}
+
+void flipBits(Node* node) {
+    if (node == nullptr) {
+        return;
+    }
+
+    if (node->data == 0) {
+        node->data = 1;
+        flipBits(node->left);
+    } else if (node->data == 1) {
+        node->data = 0;
+        flipBits(node->right);
+    } else {
+        assert(0);
+    }
+}
+
+// node = root, way = init 0, counter = tree height
+void getPointedWay(Node* node, uint32_t &way, uint32_t counter)
+{
+    if (node == nullptr || counter < 0) {
+        return;
+    }
+    
+    if (node->data == 0) {
+        getPointedWay(node->right, way, --counter);
+    } else if (node->data == 1) {
+        way += pow(2,(counter-1));
+        getPointedWay(node->left, way, --counter);
+    }
+}
+
+// convert way to binary
+void getBinaryWay(Node* node, uint32_t way, stack<int> &binary) {
+    if (node == nullptr) {
+        return;
+    }
+
+    if (way%2 == 0) {
+        binary.push(0);
+        getBinaryWay(node->right, way/2, binary);
+    } else if (way%2 == 1){
+        binary.push(1);
+        getBinaryWay(node->left, way/2, binary);
+    }
+}
+
+// convert way to binary
+// flip from root
+// node = root, way = way hit
+void pointToHit(Node* node, stack<int> &binary) {
+    
+    if (binary.empty()) {
+        return;
+    }
+
+    if (binary.top() == 0) {
+        node->data = 0;
+        binary.pop();
+        pointToHit(node->right, binary);
+    } else if (binary.top() == 1){
+        node->data = 1;
+        binary.pop();
+        pointToHit(node->left, binary);
+    }
+}
+
+// initialize replacement state
+void CACHE::llc_initialize_replacement()
+{
+    for (uint32_t i=0; i<NUM_SET; i++) {
+        tree_sets[i] = new Node(0);
+        initTreePLRU(tree_sets[i], 0, 0, TREE_HEIGHT);
+    }
+}
+
+// find replacement victim
+// evict block in LRU position
+// get address following opposite arrow path
+uint32_t CACHE::llc_find_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, const BLOCK *current_set, uint64_t ip, uint64_t full_addr, uint32_t type)
+{
+    // baseline LRU
+    uint32_t way = 0;
+
+    //TODO: fix this using pLRU??
+    // if any invalid lines, evict invalid line first
+    for (way=0; way<NUM_WAY; way++) {
+        // victim way = invalid block
+        if (block[set][way].valid == false) {
+
+            break;
+        }
+    }
+
+    uint32_t evict_way = 0;
+    // choose LRU as victim to evict
+    if (way == NUM_WAY) {
+        flipBits(tree_sets[set]);   // point to LRU
+        getPointedWay(tree_sets[set], evict_way, TREE_HEIGHT); // find way tree is pointing to
+        way = evict_way;
+    }
+
+    if (way == NUM_WAY) {
+        assert(0);
+    }
+
+    return way;
+}
+
+// called on every cache hit and cache fill
+void CACHE::llc_update_replacement_state(uint32_t cpu, uint32_t set, uint32_t way, uint64_t full_addr, uint64_t ip, uint64_t victim_addr, uint32_t type, uint8_t hit)
+{
+    string TYPE_NAME;
+    if (type == LOAD)
+        TYPE_NAME = "LOAD";
+    else if (type == RFO)
+        TYPE_NAME = "RFO";
+    else if (type == PREFETCH)
+        TYPE_NAME = "PF";
+    else if (type == WRITEBACK)
+        TYPE_NAME = "WB";
+    else
+        assert(0);
+
+    if (hit)
+        TYPE_NAME += "_HIT";
+    else
+        TYPE_NAME += "_MISS";
+
+    if ((type == WRITEBACK) && ip)
+        assert(0);
+
+    // baseline LRU
+    if (hit && (type == WRITEBACK)) // writeback hit does not update LRU state
+        return;
+
+    // update replacement state
+    // if hit, point to MRU
+    if (hit) {
+        stack<int> binary;
+        getBinaryWay(tree_sets[set], way, binary);
+        pointToHit(tree_sets[set], binary);
+    } else {
+        // if miss, currently pointed towards evicted block, replace and set as MRU
+        uint32_t mru_way = 0;
+        getPointedWay(tree_sets[set], mru_way, TREE_HEIGHT);
+        way = mru_way;
+        block[set][way].lru = 0;    // MRU (binary tree pointed)
+    }
+}
+
+void CACHE::llc_replacement_final_stats()
+{
+
+}

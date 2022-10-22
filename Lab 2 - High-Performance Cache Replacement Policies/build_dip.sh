@@ -1,0 +1,1 @@
+./compile_champsim.sh hashed_perceptron no no no no dip 4
