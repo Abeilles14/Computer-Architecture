@@ -1,0 +1,21 @@
+
+*** ChampSim Multicore Out-of-Order Simulator ***
+
+Warmup Instructions: 10000000
+Simulation Instructions: 40000000
+Ceviche: 0
+Strategy: 0
+Number of CPUs: 4
+LLC sets: 8192
+LLC ways: 8
+Off-chip DRAM Size: 16384 MB Channels: 1 Width: 64-bit Data Rate: 800 MT/s
+
+CPU 0 runs /ubc/ece/home/ugrads/a/abeilles/cpen411/assignment4/ChampSim-Intel/simscript/../spec2006/400.perlbench.gz
+CPU 1 runs /ubc/ece/home/ugrads/a/abeilles/cpen411/assignment4/ChampSim-Intel/simscript/../spec2006/400.perlbench.gz
+CPU 2 runs /ubc/ece/home/ugrads/a/abeilles/cpen411/assignment4/ChampSim-Intel/simscript/../spec2006/400.perlbench.gz
+CPU 3 runs /ubc/ece/home/ugrads/a/abeilles/cpen411/assignment4/ChampSim-Intel/simscript/../spec2006/400.perlbench.gz
+CPU 0Branch predictor
+CPU 1Branch predictor
+CPU 2Branch predictor
+CPU 3Branch predictor
+Caught signal: 2
