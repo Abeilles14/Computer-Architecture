@@ -9,11 +9,13 @@
 
 int table[NUM_CPUS][TABLE_SIZE];
 
-int8_t last_outcome = 0;
+int last_outcome[NUM_CPUS];
 
 void O3_CPU::initialize_branch_predictor()
 {
     cout << "CPU " << cpu << " Branch predictor" << endl;
+
+    last_outcome[cpu] = 0;
 
     for(int i = 0; i < TABLE_SIZE; i++)
         table[cpu][i] = 0;
@@ -27,9 +29,9 @@ uint8_t O3_CPU::predict_branch(uint64_t ip)
     //---- FILL THE PART BELOW THIS ----//
     // TODO: to fix indexing
 
-    uint32_t index = (hash % MAX_ROW)*ROW_SIZE; //hash/2;
+    uint32_t index = (hash % MAX_ROW)*ROW_SIZE;
 
-    if (last_outcome == 0) {    // if last outcome NT, use sat counter 0
+    if (last_outcome[cpu] == 0) {    // if last outcome NT, use sat counter 0
         if (table[cpu][index] >= 2) {
             prediction = 1; // predict taken if counter 2 or 3
         } else {
@@ -54,7 +56,7 @@ void O3_CPU::last_branch_result(uint64_t ip, uint8_t taken)
     uint32_t index = (hash % MAX_ROW)*ROW_SIZE;
 
     if (taken == 1) {    // if outcome is T, increment appropriate counter
-        if (last_outcome == 0) {
+        if (last_outcome[cpu] == 0) {
             if (table[cpu][index] < MAX_COUNTER) {
                 ++table[cpu][index];
             }
@@ -63,10 +65,8 @@ void O3_CPU::last_branch_result(uint64_t ip, uint8_t taken)
                 ++table[cpu][index+1];
             }
         }
-
-        last_outcome = 1;   // update outcome
     } else if (taken == 0) {    // if outcome is NT, increment appropriate counter
-        if (last_outcome == 0) {
+        if (last_outcome[cpu] == 0) {
             if (table[cpu][index] > MIN_COUNTER) {
                 --table[cpu][index];
             }
@@ -75,9 +75,9 @@ void O3_CPU::last_branch_result(uint64_t ip, uint8_t taken)
                 --table[cpu][index+1];
             }
         }
-
-        last_outcome = 0;   // update outcome
     }
+
+    last_outcome[cpu] = taken;   // update outcome
     //---- FILL THE PART ABOVE THIS ----//
     return;
 }
